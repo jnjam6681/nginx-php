@@ -4,6 +4,9 @@ ENV COMPOSER_VERSION 1.9.0
 ENV NGINX_VERSION   1.17.3
 ENV NJS_VERSION     0.3.5
 ENV PKG_RELEASE     1~buster
+ENV NVM_VERSION     0.34.0
+ENV NODE_VERSION    10.16.3
+ENV YARN_VERSION    1.17.3
 
 # install basic requirements
 RUN apt-get update -y && apt-get install --no-install-recommends --no-install-suggests -q -y \
@@ -61,6 +64,31 @@ RUN curl -o /tmp/composer-setup.php https://getcomposer.org/installer \
     && curl -o /tmp/composer-setup.sig https://composer.github.io/installer.sig \
     && php -r "if (hash('SHA384', file_get_contents('/tmp/composer-setup.php')) !== trim(file_get_contents('/tmp/composer-setup.sig'))) { unlink('/tmp/composer-setup.php'); echo 'Invalid installer' . PHP_EOL; exit(1); }" \
     && php /tmp/composer-setup.php --no-ansi --install-dir=/usr/local/bin --filename=composer --version=${COMPOSER_VERSION} && rm -rf /tmp/composer-setup.php
+
+# install nvm
+ENV NVM_DIR $HOME/.nvm
+
+RUN mkdir -p $NVM_DIR && \
+    curl -o- https://raw.githubusercontent.com/creationix/nvm/v${NVM_VERSION}/install.sh | bash \
+        && . $NVM_DIR/nvm.sh \
+        && nvm install ${NODE_VERSION} \
+        && nvm use ${NODE_VERSION} \
+        && nvm alias ${NODE_VERSION} \
+        && ln -s `npm bin --global` $HOME/.node-bin
+
+RUN echo "" >> ~/.bashrc && \
+    echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.bashrc && \
+    echo '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm' >> ~/.bashrc
+
+ENV PATH $PATH:$HOME/.node-bin
+
+# install yarn
+RUN [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && \
+    curl -o- -L https://yarnpkg.com/install.sh | bash -s -- --version ${YARN_VERSION}; \
+    echo "" >> ~/.bashrc && \
+    echo 'export PATH="$HOME/.yarn/bin:$PATH"' >> ~/.bashrc
+
+ENV PATH $PATH:$HOME/.yarn/bin
 
 RUN set -x \
 # create nginx user/group first, to be consistent throughout docker variants
