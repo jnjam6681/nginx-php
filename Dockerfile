@@ -120,6 +120,14 @@ RUN set -ex \
   && ln -s /opt/yarn-v$YARN_VERSION/bin/yarnpkg /usr/local/bin/yarnpkg \
   && rm yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz
 
+# # install yarn
+# RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
+#     && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list \
+#     && apt-get update -y \
+#     # && apt-cache policy yarn \
+#     && apt-get install -y yarn=${YARN_VERSION}
+
+# install nginx
 RUN set -x \
 # create nginx user/group first, to be consistent throughout docker variants
     && addgroup --system --gid 101 nginx \
@@ -184,13 +192,6 @@ RUN set -x \
       fi \
     && rm -rf /etc/nginx/conf.d/default.conf
 
-# # install yarn
-# RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
-#     && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list \
-#     && apt-get update -y \
-#     # && apt-cache policy yarn \
-#     && apt-get install -y yarn=${YARN_VERSION}
-
 # forward request and error logs to docker log collector
 RUN ln -sf /dev/stdout /var/log/nginx/access.log \
     && ln -sf /dev/stderr /var/log/nginx/error.log
@@ -207,6 +208,9 @@ RUN apt-get clean \
 # nginx config
 COPY ./nginx.conf /etc/nginx/
 COPY ./vhost.conf /etc/nginx/sites-enabled/default.conf
+
+# index.php file
+COPY html /var/www/html/public
 
 RUN usermod -u 1000 www-data
 
